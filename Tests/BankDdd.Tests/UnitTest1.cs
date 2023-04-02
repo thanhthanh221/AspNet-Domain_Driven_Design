@@ -1,8 +1,3 @@
-using BankDdd.Domain.BankAccount;
-using BankDdd.Domain.BankCustomer;
-using BankDdd.Domain.BankMoney;
-using BankDdd.Domain.BankPhoneNumber;
-
 namespace BankDdd.Tests;
 public class UnitTest1
 {
@@ -67,9 +62,10 @@ public class UnitTest1
     {
         Customer customer = new(new CustomerId(Guid.NewGuid()), "Bui", "Quang");
         Account account = new(new AccountId(Guid.NewGuid()), customer.Id, Currency.VN);
+        AccountManager accountManager = new();
 
         account.Deposit(new Money(600M, Currency.VN));
-        account.WithDraw(new Money(100M, Currency.VN));
+        accountManager.WithDraw(account, customer, new Money(100M, Currency.VN));
 
         Assert.Equal(new Money(500M, Currency.VN), account.Balance);
 
@@ -81,16 +77,48 @@ public class UnitTest1
     }
 
     [Fact]
-    public void Should_Throw_Exception_When_BalanceIsInsufficient_When_AmountIssGreateThanBlance()
+    public void Should_Throw_Exception_BalanceIsInsufficient_When_AmountIssGreateThanBlance()
     {
         Customer customer = new(new CustomerId(Guid.NewGuid()), "Bui", "Quang");
         Account account = new(new AccountId(Guid.NewGuid()), customer.Id, Currency.VN);
+        AccountManager accountManager = new();
 
         account.Deposit(new Money(600M, Currency.VN));
-        account.WithDraw(new Money(100M, Currency.VN));
+        accountManager.WithDraw(account, customer, new Money(100M, Currency.VN));
 
-        Assert.Throws<BalanceIsInsuffcient>(() => account.WithDraw(new Money(600M,Currency.VN)));
+        Assert.Throws<BalanceIsInsufficient>(() => accountManager.WithDraw(account, customer, new Money(600M, Currency.VN)));
 
         Assert.Equal(new Money(500M, Currency.VN), account.Balance);
+    }
+
+    [Fact]
+    public void Should_Throw_Exception_CustomerIsBlocked_When_CustomerIsBlocked_ImpureDomainInModel()
+    {
+        Customer customer = new(new CustomerId(Guid.NewGuid()), "Bui", "Quang");
+        customer.Block("Test");
+
+        var account = new Account(new AccountId(Guid.NewGuid()), customer.Id, Currency.VN);
+        account.Deposit(new Money(600M, Currency.VN));
+
+        Mock<ICustomerRepository> mockCustomerRepository = new();
+        mockCustomerRepository.Setup(r => r.GetCustomer(It.IsAny<CustomerId>())).Returns(customer);
+
+        Assert.Throws<CustomerIsBlocked>(() => account.WithDraw(new Money(600M, Currency.VN), mockCustomerRepository.Object));
+        Assert.Equal(new Money(600M, Currency.VN), account.Balance);
+    }
+
+    [Fact]
+    public void Should_Throw_Exception_CustomerIsBlocked_When_CustomerIsBlocked_PureDomainInModel()
+    {
+        Customer customer = new(new CustomerId(Guid.NewGuid()), "Bui", "Quang");
+        customer.Block("Test");
+
+        Account account = new(new AccountId(Guid.NewGuid()), customer.Id, Currency.VN);
+        account.Deposit(new Money(600M, Currency.VN));
+
+        AccountManager accountManager = new();
+
+        Assert.Throws<CustomerIsBlocked>(() => accountManager.WithDraw(account, customer, new Money(600M, Currency.VN)));
+        Assert.Equal(new Money(600M, Currency.VN), account.Balance);
     }
 }

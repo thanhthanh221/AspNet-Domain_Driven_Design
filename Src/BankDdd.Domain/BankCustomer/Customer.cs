@@ -7,6 +7,9 @@ public class Customer
     public string FirstName { get; private set; }
     public string LastName { get; private set; }
     public PhoneNumber PhoneNumber { get; set; }
+    public bool IsBlocked { get; private set; }
+    public string BlockReason { get; private set; }
+
     public Customer(CustomerId id, string firstName, string lastName)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -17,6 +20,7 @@ public class Customer
         FirstName = firstName;
         LastName = lastName;
     }
+
     public void UpdateName(string firstName, string lastName)
     {
         ArgumentNullException.ThrowIfNull(firstName);
@@ -24,6 +28,12 @@ public class Customer
 
         FirstName = firstName;
         LastName = lastName;
+    }
+
+    public void Block(string reason)
+    {
+        IsBlocked = true;
+        BlockReason = reason;
     }
 
     public override bool Equals(object obj) => obj is Customer customer && customer.Id == Id;

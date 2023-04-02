@@ -30,9 +30,39 @@ public class Account
         ));
     }
 
-    public void WithDraw(Money money)
+    internal void WithDraw(Money money)
     {
-        if (Balance - money < Money.Zero(Balance.Currency)) throw new BalanceIsInsuffcient();
+        if (Balance - money < Money.Zero(Balance.Currency)) throw new BalanceIsInsufficient();
+
+        Balance -= money;
+
+        _transactions.Add(new AccountTransaction(
+            new AccountTransactionId(Guid.NewGuid()),
+            DateTime.Now,
+            AccountTransactionType.Withdraw,
+            money
+        ));
+    }
+    public void WithDraw(Money money, Customer customer)
+    {
+        if(customer.IsBlocked) throw new CustomerIsBlocked();
+        if (Balance - money < Money.Zero(Balance.Currency)) throw new BalanceIsInsufficient();
+
+        Balance -= money;
+
+        _transactions.Add(new AccountTransaction(
+            new AccountTransactionId(Guid.NewGuid()),
+            DateTime.Now,
+            AccountTransactionType.Withdraw,
+            money
+        ));
+    }
+    public void WithDraw(Money money, ICustomerRepository customerRepository)
+    {
+        var customer = customerRepository.GetCustomer(CustomerId);
+        if(customer.IsBlocked) throw new CustomerIsBlocked();
+
+        if (Balance - money < Money.Zero(Balance.Currency)) throw new BalanceIsInsufficient();
 
         Balance -= money;
 
